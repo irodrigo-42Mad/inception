@@ -1,0 +1,32 @@
+FROM alpine:3.13
+
+#install php 
+RUN apk update && \
+	apk add php7 wget php7-fpm php7-common php7-session php7-iconv php7-json \
+    php7-gd php7-curl php7-xml php7-mysqli php7-imap php7-cgi fcgi php7-pdo \
+    php7-pdo_mysql php7-soap php7-xmlrpc php7-posix php7-mcrypt php7-gettext \
+    php7-ldap php7-ctype php7-dom
+
+RUN apk add mariadb-client && apk add openrc
+#downloads all wordpress files
+
+RUN wget http://wordpress.org/latest.tar.gz\
+&& tar -xzvf latest.tar.gz && rm latest.tar.gz\
+&& mkdir /www \
+&& cp -R wordpress/* /www/ \
+&& rm -f latest.tar.gz \
+&& rm -rf /var/cache/apk/* \
+&& rm -rf /wordpress
+
+#takes the php config and pasted on the container
+COPY srcs/wp-config.php www/wp-config.php
+
+COPY srcs/env_in.sh .
+RUN chmod -R 777 env_in.sh
+
+RUN sed -e '/skip-networking/s/^/#/g' -i /etc/my.cnf.d/mariadb-server.cnf
+
+#wordpress connection fastcgi on 0.0.0.0(replacing localhost to 0.0.0.0)
+RUN sed -e '/listen =/s/127.0.0.1/0.0.0.0/g' -i /etc/php7/php-fpm.d/www.conf
+
+CMD ./env_in.sh && openrc && touch /run/openrc/softlevel && rc-service php-fpm7 restart && php-fpm7 --nodaemonize

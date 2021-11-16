@@ -1,0 +1,58 @@
+version: '3'
+
+volumes:
+    mariadb:
+        driver: local
+        driver_opts:
+            type: none
+            o: bind
+            device: /sgoinfre/students/irodrigo/inception/data/mariadb
+    wordpress:
+        driver: local
+        driver_opts:
+            type: none
+            o: bind
+            device: /sgoinfre/students/irodrigo/inception/data/wordpress
+services:
+    nginx:
+        depends_on:
+            - wordpress
+        image: service_nginx
+        container_name: nginx
+        restart: always
+        networks: 
+            - default
+        ports:
+            - "443:443"
+            - "80:80"
+        volumes:
+        - wordpress:/www/
+
+    mariadb:
+        image: service_mariadb
+        container_name: mariadb
+        networks:
+            - default
+        restart: always
+        env_file: .env
+        volumes:
+            - mariadb:/var/lib/mysql
+
+    wordpress:
+        image: service_wordpress
+        container_name: wordpress
+        restart: always
+        networks:
+            - default
+        depends_on:
+            - mariadb
+        env_file: .env
+       # environment:
+           # WORDPRESS_DB_USER: "${MYDB_USER}"
+           # WORDPRESS_DB_PASSWORD: "${MYDB_PASS}"
+           # WORDPRESS_DB_NAME: "${MYDB_NAME}"
+        restart: on-failure
+        volumes:
+            - wordpress:/www/
+networks: 
+    default:

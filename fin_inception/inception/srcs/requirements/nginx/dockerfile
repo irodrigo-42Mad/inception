@@ -1,0 +1,19 @@
+FROM alpine:3.13
+
+#update packages and install nginx
+RUN apk update && apk add --no-cache nginx \
+&& apk add --no-cache --upgrade bash \
+&& apk add openssl && apk add openssh \
+&& mkdir -p var/run/nginx \
+&& rm -rf /var/cache/apk/*
+
+COPY ./srcs/nginx-conf ./etc/nginx/conf.d/default.conf
+
+#SSl
+RUN chmod 777 /etc/ssl/certs && \
+	openssl req -x509 -nodes -days 365 \
+  -newkey rsa:2048 -subj "/C=SP/ST=Spain/L=Madrid/O=42/CN=localhost" \
+  -out /etc/ssl/certs/nginx-selfsigned.crt \
+  -keyout /etc/ssl/certs/nginx-selfsigned.key
+
+CMD ["nginx", "-g", "daemon off;"]
